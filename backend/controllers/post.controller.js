@@ -57,3 +57,32 @@ export const deletePost = async (req, res) => {
     console.log('Error in post controller', error);
   }
 };
+
+export const commentPost = async (req, res) => {
+  try {
+    const { text } = req.body;
+    const postId = req.params.id;
+    const userId = req.user._id.toString();
+
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    const newComment = {
+      user: userId,
+      text,
+    };
+
+    post.comments.push(newComment);
+    await post.save();
+    res.status(201).json({ message: 'Comment added successfully', post });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+    console.log('Error in post controller', error);
+  }
+};
