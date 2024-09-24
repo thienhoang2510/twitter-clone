@@ -147,3 +147,26 @@ export const getAllPosts = async (req, res) => {
     console.log('Error in post controller', error);
   }
 };
+
+export const getLikedPosts = async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const likedPosts = await Post.find({ _id: { $in: user.likedPosts } })
+      .sort({ createdAt: -1 })
+      .populate({
+        path: 'user',
+        select: '-password',
+      })
+      .populate({
+        path: 'comments.user',
+        select: '-password',
+      });
+    res.status(200).json({ likedPosts });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
