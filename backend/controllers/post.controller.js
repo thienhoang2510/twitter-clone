@@ -104,11 +104,13 @@ export const likeUnlikePost = async (req, res) => {
     if (userLikedPost) {
       // Unlike the post
       await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
+      await User.updateOne({ _id: userId }, { $pull: { likedPosts: postId } });
       res.status(200).json({ message: 'Post unliked successfully' });
     } else {
       // Like the post
       post.likes.push(userId);
       await post.save();
+      await User.updateOne({ _id: userId }, { $push: { likedPosts: postId } });
 
       const notification = new Notification({
         from: userId,
@@ -118,6 +120,28 @@ export const likeUnlikePost = async (req, res) => {
       await notification.save();
       res.status(200).json({ message: 'Post liked successfully' });
     }
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+    console.log('Error in post controller', error);
+  }
+};
+
+export const getAllPosts = async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .sort({ createdAt: -1 })
+      .populate({
+        path: 'user',
+        select: '-password',
+      })
+      .populate({
+        path: 'comments.user',
+        select: '-password',
+      });
+    if (posts.length === 0) {
+      return res.status(404).json({ error: 'No posts found' });
+    }
+    res.status(200).json({ posts });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
     console.log('Error in post controller', error);
